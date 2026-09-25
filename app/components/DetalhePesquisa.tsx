@@ -70,6 +70,23 @@ function formatarCnae(cod: string): string {
 const moeda = (v: number | null) =>
   v === null ? "—" : v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 
+/** Os dois lados nulos significam que a pesquisa não filtrou por capital. */
+function faixaDeCapital(p: {
+  capitalMin: number | null;
+  capitalMax: number | null;
+}): string {
+  if (p.capitalMin === null && p.capitalMax === null) {
+    return "Capital: sem filtro";
+  }
+  if (p.capitalMin !== null && p.capitalMax === null) {
+    return `Capital a partir de ${moeda(p.capitalMin)}`;
+  }
+  if (p.capitalMin === null && p.capitalMax !== null) {
+    return `Capital até ${moeda(p.capitalMax)}`;
+  }
+  return `Capital ${moeda(p.capitalMin)} – ${moeda(p.capitalMax)}`;
+}
+
 function Selo({ status }: { status: string }) {
   const mapa: Record<string, { cls: string; texto: string; icone: React.ReactNode }> = {
     completed: {
@@ -510,7 +527,7 @@ export default function DetalhePesquisa({
               {num(pesquisa.estimatedLeads)} leads estimados
             </span>
             <span className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 px-2 py-1 text-slate-300">
-              Capital {moeda(pesquisa.capitalMin)} – {moeda(pesquisa.capitalMax)}
+              {faixaDeCapital(pesquisa)}
             </span>
           </div>
         </div>

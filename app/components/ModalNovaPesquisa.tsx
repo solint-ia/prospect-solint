@@ -68,8 +68,9 @@ export default function ModalNovaPesquisa({
   const [estado, setEstado] = useState("SE");
   const [cidade, setCidade] = useState<CidadeItem | null>(null);
   // Iguais aos da plataforma original: campos zerados por padrao.
-  const [capitalMin, setCapitalMin] = useState(0);
-  const [capitalMax, setCapitalMax] = useState(0);
+  // Texto, não número: "" é campo vazio, que significa "sem filtro".
+  const [capitalMin, setCapitalMin] = useState("");
+  const [capitalMax, setCapitalMax] = useState("");
 
   const [buscando, setBuscando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -113,8 +114,8 @@ export default function ModalNovaPesquisa({
           estado: porMunicipio ? "" : estado,
           municipioCodigo: porMunicipio ? cidade?.id : null,
           municipioNome: porMunicipio ? cidade?.nome : null,
-          capitalMin,
-          capitalMax,
+          capitalMin: capitalMin === "" ? null : Number(capitalMin),
+          capitalMax: capitalMax === "" ? null : Number(capitalMax),
         }),
       });
       const data = await res.json();
@@ -344,34 +345,42 @@ export default function ModalNovaPesquisa({
                 )}
               </div>
 
-              <Campo label="Capital social mínimo (R$)">
-                <input
-                  type="number"
-                  min={0}
-                  value={capitalMin}
-                  onChange={(e) => setCapitalMin(Number(e.target.value))}
-                  className={inputCls}
-                />
-              </Campo>
+              <Campo
+                label="Capital social"
+                dica="Opcional. Deixe em branco para não filtrar por capital."
+                className="sm:col-span-2"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={capitalMin}
+                    onChange={(e) => setCapitalMin(e.target.value)}
+                    placeholder="Valor inicial (R$)"
+                    aria-label="Capital social inicial"
+                    className={inputCls}
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    inputMode="numeric"
+                    value={capitalMax}
+                    onChange={(e) => setCapitalMax(e.target.value)}
+                    placeholder="Valor final (R$)"
+                    aria-label="Capital social final"
+                    className={inputCls}
+                  />
+                </div>
 
-              <Campo label="Capital social máximo (R$)">
-                <input
-                  type="number"
-                  min={0}
-                  value={capitalMax}
-                  onChange={(e) => setCapitalMax(Number(e.target.value))}
-                  className={inputCls}
-                />
+                {capitalMin === "0" && capitalMax === "0" && (
+                  <p className="mt-2 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    0 e 0 traz só empresas de capital social zero, que são
+                    poucas. Para não filtrar, deixe os dois campos em branco.
+                  </p>
+                )}
               </Campo>
-
-              {capitalMin === 0 && capitalMax === 0 && (
-                <p className="-mt-1 flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-200 sm:col-span-2">
-                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  Com 0 e 0 a busca traz só empresas de capital social zero, que
-                  são poucas. Para não filtrar por capital, use uma faixa ampla
-                  (ex.: 0 e 999999999).
-                </p>
-              )}
             </div>
 
             {erro && (

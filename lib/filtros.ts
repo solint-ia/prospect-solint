@@ -10,6 +10,17 @@ export class ErroDeValidacao extends Error {
 
 export const MAX_CNAES_SECUNDARIOS = 5;
 
+/** Campo vazio significa "sem filtro", não zero. */
+function lerCapital(valor: unknown, rotulo: string): number | null {
+  if (valor === null || valor === undefined || valor === "") return null;
+
+  const n = Number(valor);
+  if (!Number.isFinite(n) || n < 0) {
+    throw new ErroDeValidacao(`Capital social ${rotulo} inválido.`);
+  }
+  return n;
+}
+
 /** Os campos chegam como string do formulário; aqui viram objeto validado. */
 export function lerFiltros(body: Record<string, unknown>): FiltroParams {
   const nome = String(body.nome ?? "").trim();
@@ -27,8 +38,8 @@ export function lerFiltros(body: Record<string, unknown>): FiltroParams {
   const municipioCodigo = Number(body.municipioCodigo ?? 0);
   const municipioNome = String(body.municipioNome ?? "").trim();
 
-  const capitalMin = Number(body.capitalMin ?? 0);
-  const capitalMax = Number(body.capitalMax ?? 0);
+  const capitalMin = lerCapital(body.capitalMin, "mínimo");
+  const capitalMax = lerCapital(body.capitalMax, "máximo");
 
   if (!nome) throw new ErroDeValidacao("Informe o nome da pesquisa.");
   if (!cnae) throw new ErroDeValidacao("Selecione um CNAE primário válido.");
@@ -49,11 +60,10 @@ export function lerFiltros(body: Record<string, unknown>): FiltroParams {
     throw new ErroDeValidacao("Município inválido. Selecione-o na lista.");
   }
 
-  if (!Number.isFinite(capitalMin) || capitalMin < 0) {
-    throw new ErroDeValidacao("Capital social mínimo inválido.");
-  }
-  if (!Number.isFinite(capitalMax) || capitalMax < capitalMin) {
-    throw new ErroDeValidacao("Capital social máximo deve ser maior ou igual ao mínimo.");
+  if (capitalMin !== null && capitalMax !== null && capitalMax < capitalMin) {
+    throw new ErroDeValidacao(
+      "Capital social máximo deve ser maior ou igual ao mínimo."
+    );
   }
 
   return {

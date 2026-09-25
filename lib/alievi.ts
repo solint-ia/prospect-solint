@@ -39,8 +39,9 @@ export interface FiltroParams {
   estado: string | null;
   municipioCodigo: number | null;
   municipioNome: string | null;
-  capitalMin: number;
-  capitalMax: number;
+  /** null nos dois = sem filtro de capital social. */
+  capitalMin: number | null;
+  capitalMax: number | null;
 }
 
 export interface ExtracaoRemota {
@@ -62,6 +63,35 @@ const POLL_INTERVAL_MS = 2500;
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+
+/** Quando só um lado é informado, o outro vira o extremo da faixa. */
+const CAPITAL_MINIMO = 0;
+const CAPITAL_MAXIMO = 999_999_999;
+
+function faixaDeCapital(params: {
+  capitalMin: number | null;
+  capitalMax: number | null;
+}): { capitalsocial: { inicial: number; final: number } } | null {
+  if (params.capitalMin === null && params.capitalMax === null) return null;
+
+  return {
+    capitalsocial: {
+      inicial: params.capitalMin ?? CAPITAL_MINIMO,
+      final: params.capitalMax ?? CAPITAL_MAXIMO,
+    },
+  };
+}
+
+/** O `capitalRange` que a pesquisa guarda; null quando não há filtro. */
+function rotuloDaFaixa(params: {
+  capitalMin: number | null;
+  capitalMax: number | null;
+}): string | null {
+  const faixa = faixaDeCapital(params);
+  return faixa
+    ? `${faixa.capitalsocial.inicial}-${faixa.capitalsocial.final}`
+    : null;
+}
 
 export class AlieviService {
   private client: AxiosInstance;
@@ -155,10 +185,9 @@ export class AlieviService {
         user: 1,
         cnae_primario: [params.cnae],
         cnae_secundario: params.cnaesSecundarios,
-        capitalsocial: {
-          inicial: params.capitalMin,
-          final: params.capitalMax,
-        },
+        // Omitido quando os dois campos estão vazios: aí não há filtro de
+        // capital. Mandar 0-0 filtraria só quem tem capital social zero.
+        ...(faixaDeCapital(params) ?? {}),
         codmunicio: params.municipioCodigo,
         // Com município escolhido a UF vai nula, senão o filtro se anula.
         coduf: params.municipioCodigo ? null : params.estado,
@@ -197,7 +226,7 @@ export class AlieviService {
       municipalityCode: params.municipioCodigo,
       municipalities: porMunicipio ? [params.municipioNome] : null,
       municipalityCodes: porMunicipio ? [params.municipioCodigo] : null,
-      capitalRange: `${params.capitalMin}-${params.capitalMax}`,
+      capitalRange: rotuloDaFaixa(params),
       estimatedLeads,
     });
 
